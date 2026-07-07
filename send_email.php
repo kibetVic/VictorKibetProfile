@@ -1,12 +1,9 @@
 <?php
-// send_email.php - Complete working version
+// send_email.php - Complete working version with display messages
 
 // Enable error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
-
-// Set JSON response header
-header('Content-Type: application/json');
 
 // Load PHPMailer
 require_once 'wp-includes/PHPMailer/Exception.php';
@@ -19,11 +16,7 @@ use PHPMailer\PHPMailer\Exception;
 
 // Check if it's a POST request
 if ($_SERVER["REQUEST_METHOD"] != "POST") {
-    echo json_encode([
-        'success' => false,
-        'error' => 'Invalid request method. Please use POST.'
-    ]);
-    exit();
+    die("Invalid request method. Please use POST.");
 }
 
 // Get and validate form data
@@ -53,12 +46,42 @@ if (empty($message)) {
     $errors[] = 'Message is required';
 }
 
-// If there are validation errors, return them
+// If there are validation errors, display them
 if (!empty($errors)) {
-    echo json_encode([
-        'success' => false,
-        'errors' => $errors
-    ]);
+    echo "<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>Error - Contact Form</title>
+        <style>
+            body { font-family: Arial, sans-serif; background: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; padding: 20px; }
+            .container { max-width: 500px; width: 100%; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+            .error-icon { font-size: 60px; color: #dc3545; margin-bottom: 20px; }
+            h2 { color: #dc3545; margin-bottom: 20px; }
+            .error-list { text-align: left; background: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545; }
+            .error-list li { color: #721c24; margin: 5px 0; list-style: none; }
+            .btn { display: inline-block; padding: 12px 30px; background: #00d4ff; color: #0f172a; text-decoration: none; border-radius: 30px; font-weight: 600; margin-top: 20px; border: none; cursor: pointer; }
+            .btn:hover { background: #00b8d4; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='error-icon'>❌</div>
+            <h2>Form Validation Error</h2>
+            <div class='error-list'>
+                <ul>
+    ";
+    foreach ($errors as $error) {
+        echo "<li>• " . htmlspecialchars($error) . "</li>";
+    }
+    echo "
+                </ul>
+            </div>
+            <a href='index.html#contact' class='btn'>Go Back to Form</a>
+        </div>
+    </body>
+    </html>";
     exit();
 }
 
@@ -160,18 +183,77 @@ try {
     // Send email
     $mail->send();
 
-    // Return success response
-    echo json_encode([
-        'success' => true,
-        'message' => 'Your message has been sent successfully! I will get back to you soon.'
-    ]);
+    // Display success message
+    echo "<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>Success - Contact Form</title>
+        <style>
+            body { font-family: Arial, sans-serif; background: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; padding: 20px; }
+            .container { max-width: 500px; width: 100%; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+            .success-icon { font-size: 60px; color: #28a745; margin-bottom: 20px; }
+            h2 { color: #28a745; margin-bottom: 10px; }
+            p { color: #555; margin: 20px 0; line-height: 1.6; }
+            .btn { display: inline-block; padding: 12px 30px; background: #00d4ff; color: #0f172a; text-decoration: none; border-radius: 30px; font-weight: 600; margin-top: 20px; border: none; cursor: pointer; }
+            .btn:hover { background: #00b8d4; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='success-icon'>✅</div>
+            <h2>Message Sent Successfully!</h2>
+            <p>Thank you <strong>" . htmlspecialchars($name) . "</strong> for reaching out.<br>
+            I will get back to you at <strong>" . htmlspecialchars($email) . "</strong> as soon as possible.</p>
+            <a href='index.html#contact' class='btn'>Send Another Message</a>
+        </div>
+    </body>
+    </html>";
 
 } catch (Exception $e) {
-    // Return error response
-    echo json_encode([
-        'success' => false,
-        'error' => 'Mailer Error: ' . $mail->ErrorInfo,
-        'debug' => $e->getMessage() // Remove this in production
-    ]);
+    // Display detailed error message
+    $errorMessage = $mail->ErrorInfo;
+    
+    // Check for specific errors and provide user-friendly messages
+    if (strpos($errorMessage, 'Username and Password not accepted') !== false) {
+        $errorMessage = 'Gmail authentication failed. Please check your email credentials and ensure you are using an App Password.';
+    } elseif (strpos($errorMessage, 'Connection refused') !== false) {
+        $errorMessage = 'Could not connect to SMTP server. Please check your internet connection and SMTP settings.';
+    } elseif (strpos($errorMessage, 'Network is unreachable') !== false) {
+        $errorMessage = 'Network error. Please check your internet connection.';
+    } elseif (strpos($errorMessage, 'Could not authenticate') !== false) {
+        $errorMessage = 'Authentication failed. Please verify your Gmail App Password.';
+    }
+    
+    echo "<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset='UTF-8'>
+        <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+        <title>Error - Contact Form</title>
+        <style>
+            body { font-family: Arial, sans-serif; background: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; padding: 20px; }
+            .container { max-width: 500px; width: 100%; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
+            .error-icon { font-size: 60px; color: #dc3545; margin-bottom: 20px; }
+            h2 { color: #dc3545; margin-bottom: 10px; }
+            .error-details { background: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: left; border-left: 4px solid #dc3545; }
+            .error-details p { color: #721c24; margin: 5px 0; word-wrap: break-word; }
+            .btn { display: inline-block; padding: 12px 30px; background: #00d4ff; color: #0f172a; text-decoration: none; border-radius: 30px; font-weight: 600; margin-top: 20px; border: none; cursor: pointer; }
+            .btn:hover { background: #00b8d4; }
+        </style>
+    </head>
+    <body>
+        <div class='container'>
+            <div class='error-icon'>❌</div>
+            <h2>Failed to Send Message</h2>
+            <div class='error-details'>
+                <p><strong>Error:</strong> " . htmlspecialchars($errorMessage) . "</p>
+                " . (isset($e->getMessage()) ? "<p><strong>Debug:</strong> " . htmlspecialchars($e->getMessage()) . "</p>" : "") . "
+            </div>
+            <a href='index.html#contact' class='btn'>Try Again</a>
+        </div>
+    </body>
+    </html>";
 }
 ?>
